@@ -4,48 +4,15 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Users, Clock, Calendar, Video, Monitor } from "lucide-react";
 import Link from "next/link";
-
-interface Meeting {
-  id: string;
-  date: string;
-  duration: string;
-  participants: number;
-  status: 'Completed' | 'Scheduled' | 'In Progress';
-}
+import { MeetingTrendsChart } from "@/components/dashboard/meeting-trends-chart";
+import { MeetingStatusChart } from "@/components/dashboard/meeting-status-chart";
+import { recentMeetings, scheduledMeetings, meetingTrends, meetingStatusData } from "@/lib/data/meetings";
 
 export default function Dashboard() {
-  const recentMeetings: Meeting[] = [
-    {
-      id: '#MET-2023-001',
-      date: 'Oct 10, 2023',
-      duration: '45 mins',
-      participants: 8,
-      status: 'Completed'
-    },
-    {
-      id: '#MET-2023-002',
-      date: 'Oct 11, 2023',
-      duration: '30 mins',
-      participants: 5,
-      status: 'Completed'
-    }
-  ];
-
-  const scheduledMeetings = [
-    {
-      title: 'Team Sync',
-      time: 'Today, 2:00 PM'
-    },
-    {
-      title: 'Client Meeting',
-      time: 'Tomorrow, 10:00 AM'
-    }
-  ];
-
   return (
-    <div className="p-6 space-y-6">
+    <div className="p-6 space-y-6 bg-background">
       <div className="flex justify-between items-center">
-        <h1 className="text-3xl font-bold">Welcome Back, John</h1>
+        <h1 className="text-3xl font-bold">Welcome Back, Husnain</h1>
         <Button asChild>
           <Link href="/create">
             <span>+ New Meeting</span>
@@ -84,6 +51,12 @@ export default function Dashboard() {
             <div className="text-2xl font-bold">8</div>
           </CardContent>
         </Card>
+      </div>
+
+      {/* Graphs Section */}
+      <div className="grid gap-4 md:grid-cols-2">
+        <MeetingTrendsChart data={meetingTrends} />
+        <MeetingStatusChart data={meetingStatusData} />
       </div>
 
       {/* Recent Meetings */}
