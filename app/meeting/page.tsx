@@ -8,18 +8,21 @@ import { ChatPanel } from '@/components/meeting/chat-panel';
 import { ParticipantList } from '@/components/meeting/participant-list';
 import { VideoGrid } from '@/components/meeting/video-grid';
 
+type SidePanel = 'chat' | 'participants' | null;
+
 export default function MeetingRoom() {
   const [isMuted, setIsMuted] = useState(false);
   const [isVideoOff, setIsVideoOff] = useState(false);
   const [isScreenSharing, setIsScreenSharing] = useState(false);
-  const [isChatOpen, setIsChatOpen] = useState(false);
-  const [isParticipantsOpen, setIsParticipantsOpen] = useState(false);
+  const [activePanel, setActivePanel] = useState<SidePanel>(null);
 
   const toggleMute = () => setIsMuted(!isMuted);
   const toggleVideo = () => setIsVideoOff(!isVideoOff);
   const toggleScreenShare = () => setIsScreenSharing(!isScreenSharing);
-  const toggleChat = () => setIsChatOpen(!isChatOpen);
-  const toggleParticipants = () => setIsParticipantsOpen(!isParticipantsOpen);
+  
+  const togglePanel = (panel: SidePanel) => {
+    setActivePanel(current => current === panel ? null : panel);
+  };
   
   const handleLeave = () => {
     // Implement leave meeting logic
@@ -29,7 +32,10 @@ export default function MeetingRoom() {
   return (
     <div className="flex h-[calc(100vh-4rem)]">
       {/* Main Content */}
-      <div className="flex-1 flex flex-col">
+      <div className={cn(
+        "flex-1 flex flex-col transition-all duration-300",
+        activePanel && "lg:mr-[25vw]"
+      )}>
         {/* Video Grid */}
         <div className="flex-1 bg-background">
           <VideoGrid />
@@ -67,8 +73,8 @@ export default function MeetingRoom() {
           <Button
             variant="ghost"
             size="icon"
-            className={cn(isChatOpen && 'bg-primary/10')}
-            onClick={toggleChat}
+            className={cn(activePanel === 'chat' && 'bg-primary/10')}
+            onClick={() => togglePanel('chat')}
           >
             <MessageCircle />
           </Button>
@@ -76,8 +82,8 @@ export default function MeetingRoom() {
           <Button
             variant="ghost"
             size="icon"
-            className={cn(isParticipantsOpen && 'bg-primary/10')}
-            onClick={toggleParticipants}
+            className={cn(activePanel === 'participants' && 'bg-primary/10')}
+            onClick={() => togglePanel('participants')}
           >
             <Users />
           </Button>
@@ -92,18 +98,16 @@ export default function MeetingRoom() {
         </div>
       </div>
 
-      {/* Side Panels */}
-      {isChatOpen && (
-        <div className="w-80 border-l bg-background">
-          <ChatPanel meetingId={'1'} />
-        </div>
-      )}
-      
-      {isParticipantsOpen && (
-        <div className="w-80 border-l bg-background">
-          <ParticipantList meetingId={'1'} />
-        </div>
-      )}
+      {/* Side Panel */}
+      <div className={cn(
+        "fixed right-0 top-16 bottom-0 bg-background border-l",
+        "w-full lg:w-[25vw] transition-transform duration-300",
+        activePanel ? "translate-x-0" : "translate-x-full",
+        "z-20"
+      )}>
+        {activePanel === 'chat' && <ChatPanel meetingId={'1'} />}
+        {activePanel === 'participants' && <ParticipantList meetingId={'1'} />}
+      </div>
     </div>
   );
 }
