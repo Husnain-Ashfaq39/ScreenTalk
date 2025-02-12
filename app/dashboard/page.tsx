@@ -7,12 +7,32 @@ import Link from "next/link";
 import { MeetingTrendsChart } from "@/components/dashboard/meeting-trends-chart";
 import { MeetingStatusChart } from "@/components/dashboard/meeting-status-chart";
 import { recentMeetings, scheduledMeetings, meetingTrends, meetingStatusData } from "@/lib/data/meetings";
+import { useState, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
 
 export default function Dashboard() {
+  const router = useRouter();
+  const [user, setUser] = useState<{ userId: string; email: string; firstName: string; lastName: string } | null>(null);
+
+  useEffect(() => {
+    fetch('/api/session')
+      .then(res => {
+        if (res.ok) return res.json();
+        else router.push('/login');
+      })
+      .then(data => {
+        if (data && data.user) setUser(data.user);
+      })
+      .catch(err => {
+        console.error(err);
+        router.push('/login');
+      });
+  }, [router]);
+
   return (
     <div className="p-6 space-y-6 bg-background">
       <div className="flex justify-between items-center">
-        <h1 className="text-3xl font-bold">Welcome Back, Husnain</h1>
+        <h1 className="text-3xl font-bold">Welcome Back, {user ? user.firstName.charAt(0).toUpperCase() + user.firstName.slice(1) : 'Loading...'}</h1>
         <Button asChild>
           <Link href="/create">
             <span>+ New Meeting</span>
