@@ -4,8 +4,10 @@ import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { toast } from 'sonner';
+import { useRouter } from 'next/navigation';
 
 export default function JoinMeeting() {
+  const router = useRouter();
   const [meetingId, setMeetingId] = useState('');
 
   const handleJoin = () => {
@@ -13,8 +15,9 @@ export default function JoinMeeting() {
       toast.error('Please enter a meeting ID');
       return;
     }
-    // Handle join meeting logic here
+
     toast.success('Joining meeting...');
+    router.push(`/meeting?channel=${meetingId.trim()}`);
   };
 
   return (
@@ -32,6 +35,7 @@ export default function JoinMeeting() {
               placeholder="Enter meeting ID"
               value={meetingId}
               onChange={(e) => setMeetingId(e.target.value)}
+              onKeyDown={(e) => e.key === 'Enter' && handleJoin()}
             />
           </div>
           <Button className="w-full" onClick={handleJoin}>

@@ -6,18 +6,28 @@ import { Input } from '@/components/ui/input';
 import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
 import { toast } from 'sonner';
+import { useRouter } from 'next/navigation';
 
 export default function CreateMeeting() {
+  const router = useRouter();
   const [meetingName, setMeetingName] = useState('');
   const [isPrivate, setIsPrivate] = useState(false);
+
+  const generateChannelName = () => {
+    // Generate a random string for the channel name
+    const randomString = Math.random().toString(36).substring(2, 15);
+    return `${meetingName.toLowerCase().replace(/[^a-z0-9]/g, '-')}-${randomString}`;
+  };
 
   const handleCreate = () => {
     if (!meetingName.trim()) {
       toast.error('Please enter a meeting name');
       return;
     }
-    // Handle create meeting logic here
-    toast.success('Creating meeting...');
+
+    const channelName = generateChannelName();
+    toast.success('Creating meeting room...');
+    router.push(`/meeting?channel=${channelName}`);
   };
 
   return (

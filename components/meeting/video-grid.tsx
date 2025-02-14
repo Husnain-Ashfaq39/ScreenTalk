@@ -1,14 +1,51 @@
 'use client';
 
-import { useEffect, useRef } from 'react';
+import { useEffect, useState } from 'react';
+import dynamic from 'next/dynamic';
+import { useSearchParams } from 'next/navigation';
 
-export function VideoGrid() {
+const VideoCall = dynamic(() => import('./video-call'), {
+  ssr: false,
+});
+
+interface VideoGridProps {
+  isMuted?: boolean;
+  isVideoOff?: boolean;
+  onMuteChange?: (muted: boolean) => void;
+  onVideoChange?: (videoOff: boolean) => void;
+}
+
+export function VideoGrid({ 
+  isMuted = false,
+  isVideoOff = false,
+  onMuteChange,
+  onVideoChange 
+}: VideoGridProps) {
+  const searchParams = useSearchParams();
+  const [channelName, setChannelName] = useState<string>('');
+
+  useEffect(() => {
+    const channel = searchParams.get('channel') || 'default-channel';
+    setChannelName(channel);
+  }, [searchParams]);
+
+  const handleUserJoined = (uid: string | number) => {
+    console.log('User joined:', uid);
+  };
+
+  const handleUserLeft = (uid: string | number) => {
+    console.log('User left:', uid);
+  };
+
   return (
-    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 p-4 h-full">
-      {/* This is a placeholder - we'll implement actual video streams later */}
-      <div className="bg-muted rounded-lg aspect-video flex items-center justify-center">
-        <span className="text-2xl font-bold">You</span>
-      </div>
-    </div>
+    <VideoCall
+      channelName={channelName}
+      onUserJoined={handleUserJoined}
+      onUserLeft={handleUserLeft}
+      isMuted={isMuted}
+      isVideoOff={isVideoOff}
+      onMuteChange={onMuteChange}
+      onVideoChange={onVideoChange}
+    />
   );
 } 

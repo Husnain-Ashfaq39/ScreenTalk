@@ -80,3 +80,34 @@
     @apply bg-background text-foreground;
   }
 }
+
+/* Meeting Room Styles */
+body.meeting-mode {
+  overflow: hidden;
+  height: 100vh;
+  width: 100vw;
+}
+
+body.meeting-mode header,
+body.meeting-mode nav {
+  display: none !important;
+}
+
+body.meeting-mode main {
+  padding: 0 !important;
+  margin: 0 !important;
+  height: 100vh !important;
+}
+
+/* Video Grid Styles */
+.video-grid-fullscreen {
+  @apply fixed inset-0 z-0;
+}
+
+.video-grid-fullscreen .remote-video {
+  @apply absolute inset-0 w-full h-full object-cover;
+}
+
+.video-grid-fullscreen .local-video {
+  @apply absolute bottom-4 right-4 w-[300px] h-[169px] rounded-lg overflow-hidden shadow-lg z-10;
+}
