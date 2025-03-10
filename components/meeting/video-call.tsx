@@ -11,8 +11,10 @@ interface VideoCallProps {
   onUserLeft?: (uid: string | number) => void;
   isMuted?: boolean;
   isVideoOff?: boolean;
+  isScreenSharing?: boolean;
   onMuteChange?: (muted: boolean) => void;
   onVideoChange?: (videoOff: boolean) => void;
+  onScreenShareChange?: (isScreenSharing: boolean) => void;
 }
 
 interface RemoteUser {
@@ -21,6 +23,7 @@ interface RemoteUser {
   audioTrack?: any;
   hasVideo: boolean;
   hasAudio: boolean;
+  isScreenShare?: boolean;
 }
 
 const VideoCall: React.FC<VideoCallProps> = ({ 
@@ -29,14 +32,17 @@ const VideoCall: React.FC<VideoCallProps> = ({
   onUserLeft,
   isMuted = false,
   isVideoOff = false,
+  isScreenSharing = false,
   onMuteChange,
-  onVideoChange 
+  onVideoChange,
+  onScreenShareChange 
 }) => {
   const [AgoraRTC, setAgoraRTC] = useState<any>(null);
   const [joined, setJoined] = useState<boolean>(false);
   const [localTracks, setLocalTracks] = useState<{
     videoTrack: any;
     audioTrack: any;
+    screenTrack?: any;
   }>({ videoTrack: null, audioTrack: null });
   const [remoteUsers, setRemoteUsers] = useState<RemoteUser[]>([]);
   const [error, setError] = useState<string>('');
@@ -77,6 +83,92 @@ const VideoCall: React.FC<VideoCallProps> = ({
       localTracks.videoTrack.setEnabled(!isVideoOff);
     }
   }, [isVideoOff, localTracks.videoTrack]);
+
+  useEffect(() => {
+    if (isScreenSharing) {
+      startScreenShare();
+    } else {
+      stopScreenShare();
+    }
+  }, [isScreenSharing]);
+
+  const startScreenShare = async () => {
+    try {
+      if (!AgoraRTC || !client.current) return;
+
+      // Store the current video track
+      const currentVideoTrack = localTracks.videoTrack;
+
+      // Unpublish the camera video track if it exists
+      if (currentVideoTrack) {
+        await client.current.unpublish(currentVideoTrack);
+      }
+
+      // Create screen share track
+      const screenTrack = await AgoraRTC.createScreenVideoTrack({
+        encoderConfig: {
+          width: 1920,
+          height: 1080,
+          frameRate: 30,
+          bitrateMin: 600,
+          bitrateMax: 2000,
+        },
+      });
+
+      // If we already have a screen track, stop it
+      if (localTracks.screenTrack) {
+        await client.current.unpublish(localTracks.screenTrack);
+        localTracks.screenTrack.close();
+      }
+
+      // Publish screen track
+      await client.current.publish(screenTrack);
+
+      // Update local tracks
+      setLocalTracks(prev => ({
+        ...prev,
+        screenTrack,
+        videoTrack: currentVideoTrack, // Keep the video track in state but unpublished
+      }));
+
+      // Handle screen share stopped by user through browser UI
+      screenTrack.on('track-ended', () => {
+        onScreenShareChange?.(false);
+      });
+
+    } catch (error: any) {
+      console.error('Error starting screen share:', error);
+      toast.error('Failed to start screen sharing: ' + error.message);
+      onScreenShareChange?.(false);
+    }
+  };
+
+  const stopScreenShare = async () => {
+    try {
+      if (!client.current) return;
+
+      // Unpublish screen track if it exists
+      if (localTracks.screenTrack) {
+        await client.current.unpublish(localTracks.screenTrack);
+        localTracks.screenTrack.close();
+      }
+
+      // Republish the camera video track if it exists
+      if (localTracks.videoTrack) {
+        await client.current.publish(localTracks.videoTrack);
+      }
+
+      // Update local tracks
+      setLocalTracks(prev => ({
+        ...prev,
+        screenTrack: null,
+      }));
+
+    } catch (error) {
+      console.error('Error stopping screen share:', error);
+      toast.error('Failed to stop screen sharing');
+    }
+  };
 
   const setupLocalTracks = async () => {
     try {
@@ -178,10 +270,15 @@ const VideoCall: React.FC<VideoCallProps> = ({
     return () => {
       setConnectionStatus('Disconnecting...');
       if (client.current) {
-        if (localTracks.audioTrack || localTracks.videoTrack) {
-          client.current.unpublish([localTracks.audioTrack, localTracks.videoTrack]).catch(console.error);
+        if (localTracks.audioTrack || localTracks.videoTrack || localTracks.screenTrack) {
+          client.current.unpublish([
+            localTracks.audioTrack,
+            localTracks.videoTrack,
+            localTracks.screenTrack
+          ].filter(Boolean)).catch(console.error);
           localTracks.audioTrack?.close();
           localTracks.videoTrack?.close();
+          localTracks.screenTrack?.close();
         }
         client.current.leave().catch(console.error);
         setRemoteUsers([]);

@@ -11,15 +11,19 @@ const VideoCall = dynamic(() => import('./video-call'), {
 interface VideoGridProps {
   isMuted?: boolean;
   isVideoOff?: boolean;
+  isScreenSharing?: boolean;
   onMuteChange?: (muted: boolean) => void;
   onVideoChange?: (videoOff: boolean) => void;
+  onScreenShareChange?: (isScreenSharing: boolean) => void;
 }
 
 export function VideoGrid({ 
   isMuted = false,
   isVideoOff = false,
+  isScreenSharing = false,
   onMuteChange,
-  onVideoChange 
+  onVideoChange,
+  onScreenShareChange
 }: VideoGridProps) {
   const searchParams = useSearchParams();
   const [channelName, setChannelName] = useState<string>('');
@@ -44,8 +48,10 @@ export function VideoGrid({
       onUserLeft={handleUserLeft}
       isMuted={isMuted}
       isVideoOff={isVideoOff}
+      isScreenSharing={isScreenSharing}
       onMuteChange={onMuteChange}
       onVideoChange={onVideoChange}
+      onScreenShareChange={onScreenShareChange}
     />
   );
 } 

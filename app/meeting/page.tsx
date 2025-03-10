@@ -21,7 +21,6 @@ export default function MeetingRoom() {
   const [showControls, setShowControls] = useState(true);
   const [mouseTimeout, setMouseTimeout] = useState<NodeJS.Timeout | null>(null);
 
-
   useEffect(() => {
     const handleMouseMove = () => {
       setShowControls(true);
@@ -59,9 +58,13 @@ export default function MeetingRoom() {
 
   const toggleScreenShare = () => {
     setIsScreenSharing(!isScreenSharing);
-    toast.success(isScreenSharing ? 'Screen sharing stopped' : 'Screen sharing started');
   };
   
+  const handleScreenShareChange = (sharing: boolean) => {
+    setIsScreenSharing(sharing);
+    toast.success(sharing ? 'Screen sharing started' : 'Screen sharing stopped');
+  };
+
   const togglePanel = (panel: SidePanel) => {
     setActivePanel(current => current === panel ? null : panel);
   };
@@ -82,8 +85,10 @@ export default function MeetingRoom() {
           <VideoGrid
             isMuted={isMuted}
             isVideoOff={isVideoOff}
+            isScreenSharing={isScreenSharing}
             onMuteChange={setIsMuted}
             onVideoChange={setIsVideoOff}
+            onScreenShareChange={handleScreenShareChange}
           />
         </div>
 
