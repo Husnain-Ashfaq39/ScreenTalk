@@ -31,10 +31,6 @@ const VideoCall: React.FC<VideoCallProps> = ({
   userName,
   isMuted = false,
   isVideoOff = false,
-  isScreenSharing = false,
-  onMuteChange,
-  onVideoChange,
-  onScreenShareChange,
 }) => {
   // Mock data for UI demonstration
   const [remoteUsers] = useState<RemoteUser[]>([
