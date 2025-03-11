@@ -13,7 +13,21 @@ interface Message {
 }
 
 export function ChatPanel({ meetingId }: { meetingId: string }) {
-  const [messages, setMessages] = useState<Message[]>([]);
+  // Mock data for UI demonstration
+  const [messages, setMessages] = useState<Message[]>([
+    {
+      id: '1',
+      sender: 'System',
+      content: 'Welcome to the chat!',
+      timestamp: new Date(),
+    },
+    {
+      id: '2',
+      sender: 'Demo User',
+      content: 'Hello everyone!',
+      timestamp: new Date(Date.now() - 5 * 60000), // 5 minutes ago
+    }
+  ]);
   const [newMessage, setNewMessage] = useState('');
 
   const handleSend = () => {

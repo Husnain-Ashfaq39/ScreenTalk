@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState, useRef } from 'react';
+import { useState } from 'react';
 import dynamic from 'next/dynamic';
 import { useSearchParams } from 'next/navigation';
 
@@ -28,23 +28,18 @@ export function VideoGrid({
   onScreenShareChange,
 }: VideoGridProps) {
   const searchParams = useSearchParams();
-  const [channelName, setChannelName] = useState<string>('');
-  const guestId = useRef(`Guest-${Math.floor(Math.random() * 10000)}`).current;
+  const [channelName] = useState<string>('demo-channel');
   
-  // Get display name from user info or use guest ID
-  const displayName = userName ? userName : guestId;
+  // Get display name from user info or use a default
+  const displayName = userName || 'User';
 
-  useEffect(() => {
-    const channel = searchParams.get('channel') || 'default-channel';
-    setChannelName(channel);
-  }, [searchParams]);
-
+  // Dummy handlers that would normally interact with Agora
   const handleUserJoined = (uid: string | number) => {
-    console.log('User joined:', uid);
+    console.log('UI Only - User joined:', uid);
   };
 
   const handleUserLeft = (uid: string | number) => {
-    console.log('User left:', uid);
+    console.log('UI Only - User left:', uid);
   };
 
   return (

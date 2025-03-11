@@ -12,8 +12,11 @@ interface Participant {
 }
 
 export function ParticipantList({ meetingId }: { meetingId: string }) {
+  // Mock data for UI demonstration
   const [participants] = useState<Participant[]>([
     { id: '1', name: 'You', isMuted: false, isVideoOff: false },
+    { id: '2', name: 'Demo User 1', isMuted: true, isVideoOff: false },
+    { id: '3', name: 'Demo User 2', isMuted: false, isVideoOff: true },
   ]);
 
   return (
@@ -31,7 +34,18 @@ export function ParticipantList({ meetingId }: { meetingId: string }) {
             <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center">
               <User className="w-4 h-4" />
             </div>
-            <span className="font-medium">{participant.name}</span>
+            <div className="flex-1">
+              <div className="flex items-center">
+                <span className="font-medium">{participant.name}</span>
+                {participant.id === '1' && (
+                  <span className="ml-2 text-xs text-muted-foreground">(You)</span>
+                )}
+              </div>
+            </div>
+            <div className="flex items-center gap-2 text-xs text-muted-foreground">
+              {participant.isMuted && <span>Muted</span>}
+              {participant.isVideoOff && <span>Video Off</span>}
+            </div>
           </div>
         ))}
       </ScrollArea>
