@@ -21,6 +21,19 @@ export default function MeetingRoom() {
   const [showControls, setShowControls] = useState(true);
   const [mouseTimeout, setMouseTimeout] = useState<NodeJS.Timeout | null>(null);
 
+  const [user, setUser] = useState<{ userId: string; email: string; firstName: string; lastName: string } | null>(null);
+
+  useEffect(() => {
+    fetch('/api/session')
+      .then(res => res.json())
+      .then(data => {
+        if (data && data.user) setUser(data.user);
+      });
+  }, []);
+
+
+  
+
   useEffect(() => {
     const handleMouseMove = () => {
       setShowControls(true);
@@ -83,12 +96,14 @@ export default function MeetingRoom() {
         {/* Video Grid */}
         <div className="flex-1">
           <VideoGrid
+            userName={user?.firstName || ''}
             isMuted={isMuted}
             isVideoOff={isVideoOff}
             isScreenSharing={isScreenSharing}
             onMuteChange={setIsMuted}
             onVideoChange={setIsVideoOff}
             onScreenShareChange={handleScreenShareChange}
+          
           />
         </div>
 

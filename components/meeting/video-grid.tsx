@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import dynamic from 'next/dynamic';
 import { useSearchParams } from 'next/navigation';
 
@@ -9,6 +9,7 @@ const VideoCall = dynamic(() => import('./video-call'), {
 });
 
 interface VideoGridProps {
+  userName: string;
   isMuted?: boolean;
   isVideoOff?: boolean;
   isScreenSharing?: boolean;
@@ -18,15 +19,20 @@ interface VideoGridProps {
 }
 
 export function VideoGrid({ 
+  userName,
   isMuted = false,
   isVideoOff = false,
   isScreenSharing = false,
   onMuteChange,
   onVideoChange,
-  onScreenShareChange
+  onScreenShareChange,
 }: VideoGridProps) {
   const searchParams = useSearchParams();
   const [channelName, setChannelName] = useState<string>('');
+  const guestId = useRef(`Guest-${Math.floor(Math.random() * 10000)}`).current;
+  
+  // Get display name from user info or use guest ID
+  const displayName = userName ? userName : guestId;
 
   useEffect(() => {
     const channel = searchParams.get('channel') || 'default-channel';
@@ -44,6 +50,7 @@ export function VideoGrid({
   return (
     <VideoCall
       channelName={channelName}
+      userName={displayName}
       onUserJoined={handleUserJoined}
       onUserLeft={handleUserLeft}
       isMuted={isMuted}

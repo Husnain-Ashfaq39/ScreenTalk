@@ -111,3 +111,10 @@ body.meeting-mode main {
 .video-grid-fullscreen .local-video {
   @apply absolute bottom-4 right-4 w-[300px] h-[169px] rounded-lg overflow-hidden shadow-lg z-10;
 }
+
+/* Local video container styles */
+.local-video-container {
+  box-shadow: 0 0 4px rgba(59, 130, 246, 0.2),
+              0 0 6px rgba(168, 85, 247, 0.15),
+              0 0 8px rgba(236, 72, 153, 0.15);
+}

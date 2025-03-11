@@ -7,6 +7,7 @@ import { cn } from '@/lib/utils';
 
 interface VideoCallProps {
   channelName: string;
+  userName: string;
   onUserJoined?: (uid: string | number) => void;
   onUserLeft?: (uid: string | number) => void;
   isMuted?: boolean;
@@ -15,10 +16,13 @@ interface VideoCallProps {
   onMuteChange?: (muted: boolean) => void;
   onVideoChange?: (videoOff: boolean) => void;
   onScreenShareChange?: (isScreenSharing: boolean) => void;
+  onMessageReceived?: (message: { text: string; sender: string; timestamp: Date }) => void;
+  onSendMessage?: (message: string) => void;
 }
 
 interface RemoteUser {
   uid: string | number;
+  name: string;
   videoTrack?: any;
   audioTrack?: any;
   hasVideo: boolean;
@@ -26,8 +30,24 @@ interface RemoteUser {
   isScreenShare?: boolean;
 }
 
+interface ChatMessage {
+  msg: string;
+  from: string;
+  time: number;
+  type: string;
+  to: string;
+  chatType: string;
+}
+
+interface ChatError {
+  type: string;
+  message: string;
+  error?: Error;
+}
+
 const VideoCall: React.FC<VideoCallProps> = ({ 
-  channelName, 
+  channelName,
+  userName,
   onUserJoined, 
   onUserLeft,
   isMuted = false,
@@ -35,9 +55,12 @@ const VideoCall: React.FC<VideoCallProps> = ({
   isScreenSharing = false,
   onMuteChange,
   onVideoChange,
-  onScreenShareChange 
+  onScreenShareChange,
+  onMessageReceived,
+  onSendMessage
 }) => {
   const [AgoraRTC, setAgoraRTC] = useState<any>(null);
+  const [ChatSDK, setChatSDK] = useState<any>(null);
   const [joined, setJoined] = useState<boolean>(false);
   const [localTracks, setLocalTracks] = useState<{
     videoTrack: any;
@@ -52,11 +75,16 @@ const VideoCall: React.FC<VideoCallProps> = ({
   const localVideoRef = useRef<HTMLDivElement | null>(null);
   const remoteVideoRefs = useRef<{ [key: string]: HTMLDivElement | null }>({});
   const client = useRef<any>(null);
+  const chatConnection = useRef<any>(null);
 
   const initializeAgora = async () => {
     try {
-      const AgoraRTCModule = await import('agora-rtc-sdk-ng');
+      const [AgoraRTCModule, { default: ChatSDK }] = await Promise.all([
+        import('agora-rtc-sdk-ng'),
+        import('agora-chat')
+      ]);
       setAgoraRTC(AgoraRTCModule.default);
+      setChatSDK(ChatSDK);
     } catch (error) {
       setError('Failed to load video call SDK');
       console.error('Error loading Agora SDK:', error);
@@ -68,6 +96,9 @@ const VideoCall: React.FC<VideoCallProps> = ({
     return () => {
       if (client.current) {
         client.current.removeAllListeners();
+      }
+      if (chatConnection.current) {
+        chatConnection.current.close();
       }
     };
   }, []);
@@ -223,7 +254,7 @@ const VideoCall: React.FC<VideoCallProps> = ({
           onUserJoined?.(user.uid);
           setRemoteUsers(prev => {
             if (prev.find(u => u.uid === user.uid)) return prev;
-            return [...prev, { uid: user.uid, hasVideo: false, hasAudio: false }];
+            return [...prev, { uid: user.uid, name: userName, hasVideo: false, hasAudio: false }];
           });
         });
         client.current.on('user-left', handleUserLeft);
@@ -319,6 +350,7 @@ const VideoCall: React.FC<VideoCallProps> = ({
 
         const newUser = {
           uid: user.uid,
+          name: user.name || `User ${user.uid}`,
           [mediaType + 'Track']: user[mediaType + 'Track'],
           hasVideo: mediaType === 'video',
           hasAudio: mediaType === 'audio'
@@ -405,6 +437,112 @@ const VideoCall: React.FC<VideoCallProps> = ({
     initializeAgora();
   };
 
+  const generateSecurePassword = (length: number = 32) => {
+    const charset = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789!@#$%^&*()_+-=[]{}|;:,.<>?';
+    let password = '';
+    for (let i = 0; i < length; i++) {
+      password += charset.charAt(Math.floor(Math.random() * charset.length));
+    }
+    return password;
+  };
+
+  const initializeChat = async () => {
+    if (!ChatSDK) return;
+
+    try {
+      // Initialize the Chat SDK
+      const connection = ChatSDK.create({
+        appKey: '0ef97ff32db048cd8d5063a70234652d'  // Your Agora App Key
+      });
+      chatConnection.current = connection;
+
+      // Add event handlers
+      connection.addEventHandler('chat', {
+        onConnected: () => {
+          console.log('Chat connected successfully');
+          joinChatChannel();
+        },
+        onDisconnected: () => {
+          console.log('Chat disconnected');
+        },
+        onTextMessage: (message: ChatMessage) => {
+          try {
+            onMessageReceived?.({
+              text: message.msg,
+              sender: message.from,
+              timestamp: new Date(message.time)
+            });
+          } catch (error) {
+            console.error('Error handling message:', error);
+          }
+        },
+        onError: (error: ChatError) => {
+          console.error('Chat error:', error);
+          toast.error('Chat error occurred');
+        }
+      });
+
+      // Generate a secure password based on the channel name and user name
+      const securePassword = generateSecurePassword();
+
+      // Open the connection
+      await connection.open({
+        user: userName,
+        pwd: securePassword
+      });
+
+    } catch (error) {
+      console.error('Error initializing chat:', error);
+      toast.error('Failed to initialize chat');
+    }
+  };
+
+  const joinChatChannel = async () => {
+    try {
+      await chatConnection.current.joinChatRoom(channelName);
+    } catch (error) {
+      console.error('Error joining chat room:', error);
+      toast.error('Failed to join chat room');
+    }
+  };
+
+  const sendMessage = async (text: string) => {
+    if (!chatConnection.current) return;
+
+    try {
+      const msg = {
+        type: 'txt',
+        to: channelName,
+        msg: text,
+        chatType: 'chatRoom'
+      };
+
+      await chatConnection.current.send(msg);
+      
+      // Also notify local UI
+      onMessageReceived?.({
+        text,
+        sender: userName,
+        timestamp: new Date()
+      });
+    } catch (error) {
+      console.error('Error sending message:', error);
+      toast.error('Failed to send message');
+    }
+  };
+
+  useEffect(() => {
+    if (onSendMessage) {
+      onSendMessage = sendMessage;
+    }
+  }, [onSendMessage]);
+
+  useEffect(() => {
+    if (ChatSDK && userName && channelName) {
+      initializeChat();
+    }
+  }, [ChatSDK, userName, channelName]);
+
   if (!AgoraRTC) {
     return <div className="text-center p-4">Loading video call SDK...</div>;
   }
@@ -424,37 +562,50 @@ const VideoCall: React.FC<VideoCallProps> = ({
   }
 
   return (
-    <div className="video-grid-fullscreen">
-      {/* Local Video */}
-      <div className="local-video">
-        <div ref={localVideoRef} className="absolute inset-0" />
-        <div className="absolute bottom-2 left-2 bg-black/50 text-white px-2 py-1 rounded text-sm">
-          You
-        </div>
+    <div className="relative h-full">
+      {/* Main Grid for Remote Videos */}
+      <div className={cn(
+        "grid gap-4 p-4 h-full",
+        remoteUsers.length === 0 && "grid-cols-1",
+        remoteUsers.length === 1 && "grid-cols-1",
+        remoteUsers.length === 2 && "grid-cols-2",
+        remoteUsers.length >= 3 && "grid-cols-3",
+        "auto-rows-fr"
+      )}>
+        {/* Remote Videos */}
+        {remoteUsers.map((user) => {
+          console.log("user is here ", user); // Log user information
+          return (
+            <div key={user.uid} className="relative rounded-lg overflow-hidden bg-black">
+              <div ref={setRemoteVideoRef(user.uid.toString())} className="absolute inset-0" />
+              <div className="absolute bottom-2 left-2 bg-black/50 text-white px-2 py-1 rounded text-sm">
+                hello {user.name}
+              </div>
+            </div>
+          );
+        })}
+
+        {remoteUsers.length === 0 && joined && (
+          <div className="flex items-center justify-center">
+            <div className="text-center text-gray-500">
+              <p>Waiting for others to join...</p>
+              <p className="text-sm mt-2">Share the channel name with them to join this call.</p>
+            </div>
+          </div>
+        )}
       </div>
 
-      {/* Remote Videos */}
-      {remoteUsers.map((user, index) => (
-        <div key={user.uid} className={cn(
-          "remote-video",
-          // Only show the first remote user in fullscreen
-          index === 0 ? "block" : "hidden"
-        )}>
-          <div ref={setRemoteVideoRef(user.uid.toString())} className="absolute inset-0" />
-          <div className="absolute bottom-2 left-2 bg-black/50 text-white px-2 py-1 rounded text-sm">
-            User {user.uid}
+      {/* Local Video - Fixed in top left corner with subtle border */}
+      <div className="local-video-container fixed top-4 left-4 w-48 aspect-video z-50">
+        <div className="absolute inset-0 rounded-lg bg-gradient-to-r from-blue-400/40 via-purple-400/40 to-pink-400/40 p-[1px]">
+          <div className="relative w-full h-full rounded-lg overflow-hidden bg-black">
+            <div ref={localVideoRef} className="absolute inset-0" />
+            <div className="absolute bottom-2 left-2 bg-black/50 text-white px-2 py-1 rounded text-sm">
+              {userName}
+            </div>
           </div>
         </div>
-      ))}
-
-      {remoteUsers.length === 0 && joined && (
-        <div className="absolute inset-0 flex items-center justify-center">
-          <div className="text-center text-gray-500">
-            <p>Waiting for others to join...</p>
-            <p className="text-sm mt-2">Share the channel name with them to join this call.</p>
-          </div>
-        </div>
-      )}
+      </div>
     </div>
   );
 };
